@@ -41,9 +41,17 @@ fun SXSSFRow.writeListAsRow(cells: List<String>)  {
 
 @ExperimentalTime
 @ExperimentalPathApi
-class Splitter: Common() {
+class Splitter(act: String): Common() {
+    private var action = cfgAll[act]?.get("action") ?: ""
+    private var fullInputPath: JPath = Path(wrkDir, cfgAll[act]?.get("inputdir") ?: "INPUT_DEFAULT")
+    private var fullOutputDir: String = Path(wrkDir, cfgAll[act]?.get("outputdir") ?: "OUTPUT_DEFAULT").toString()
+    private var rowsLimit = try { if ((cfgAll[act]?.get("rows")?.toInt() ?: 65000) > 1000000) 1000000
+        else cfgAll[act]?.get("rows")?.toInt() ?: 65000 } catch (e: NumberFormatException) {
+        logger.info("${cfgAll[act]?.get("rows").toString()} is not valid positive Int number; 65000 will be used."); 65000 }
+
     init {
         createDir(fullOutputDir)
+        rowsLimit = if (rowsLimit > 0) rowsLimit else 65000
     }
 
 
@@ -59,7 +67,7 @@ class Splitter: Common() {
             fileList.forEach { inputFile ->
                 allRows = 0
                 if (inputFile.exists()) {
-                    logger.info("> ${inputFile.name}")
+                    logger.info("  > ${inputFile.name}")
                     val doing = measureTime {
                         val fileCharset = getCharset(inputFile.toString())
                         val prefix: String = inputFile.nameWithoutExtension
@@ -83,6 +91,7 @@ class Splitter: Common() {
                 } else {
                     logger.info("File [${inputFile.name}] not found !!!")
                 }
+                allRows = 0
             }
         }
     }
@@ -103,7 +112,7 @@ class Splitter: Common() {
             fileList.forEach { inputFile ->
                 allRows = 0
                 if (inputFile.exists()) {
-                    logger.info("> ${inputFile.name}")
+                    logger.info("  > ${inputFile.name}")
                     val doing = measureTime {
                         val prefix: String = inputFile.nameWithoutExtension
                         delimiterCSV = getCsvDelimiter(inputFile.toString())
@@ -150,9 +159,11 @@ class Splitter: Common() {
                         print("\r")
                     }
                     logger.info("   cnt: $allRows / time: ${doing.toComponents { days, hours, minutes, seconds, _ -> "${days}d ${hours}h ${minutes}min ${seconds}sec" }}")
+
                 } else {
                     logger.info("File [${inputFile.name}] not found !!!")
                 }
+                allRows = 0
             }
         }
     }
@@ -193,7 +204,7 @@ class Splitter: Common() {
             allRows = 0
             outFileCount = 0
             if (inputFile.exists()) {
-                logger.info("> ${inputFile.name}")
+                logger.info("  > ${inputFile.name}")
                 val doing = measureTime {
                     val prefix: String = inputFile.nameWithoutExtension
                     val pkg = OPCPackage.open(inputFile.toString())
@@ -211,6 +222,7 @@ class Splitter: Common() {
                     print("\r")
                 }
                 logger.info("   cnt: $allRows / time: ${doing.toComponents { days, hours, minutes, seconds, _ -> "${days}d ${hours}h ${minutes}min ${seconds}sec" }}")
+                allRows = 0
             } else {
                 logger.info("File [${inputFile.name}] not found !!!")
             }
@@ -251,6 +263,26 @@ class Splitter: Common() {
             }
 
             override fun endElement(uri: String, localName: String, name: String) {
+                if (name == "worksheet") {
+                    if (book.numberOfSheets == 1) {
+                        book.write(outStream)
+                        closeBook()
+                        book = SXSSFWorkbook(100)
+                        page = book.createSheet("PAGE_0")
+                        outStream = FileOutputStream(outFileName)
+                    }
+                    else if (book.numberOfSheets > 1 && book.numberOfSheets >= numSheets) {
+                        book.write(outStream)
+                        closeBook()
+                        book = SXSSFWorkbook(100)
+                        page = book.createSheet("PAGE_0")
+                        outStream = FileOutputStream(outFileName)
+                    }
+                    else if (book.numberOfSheets > 1 && book.numberOfSheets == numSheets) {
+                        book.write(outStream)
+                        closeBook()
+                    }
+                }
                 if (nextIsString) {
                     val idx = lastContents!!.toInt()
                     lastContents = sst.getItemAt(idx).string
@@ -277,15 +309,6 @@ class Splitter: Common() {
                     rowsOnSheet += 1
                     allRows += 1
                     rawList = mutableListOf()
-                }
-                if (name == "worksheet") {
-                    if (book.numberOfSheets == numSheets) {
-                        try {
-                            book.write(outStream)
-                        } finally {
-                            closeBook()
-                        }
-                    }
                 }
             }
 

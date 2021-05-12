@@ -11,7 +11,7 @@ plugins {
 
 val x = File("$projectDir/src/main/resources/build.txt").readText()
 group = "space.okxjd"
-version = "$x" //-SNAPSHOT"
+version = "" // "$x" //-SNAPSHOT"
 
 application.mainClassName = "space.okxjd.processiNG.MainKt"
 
@@ -26,7 +26,7 @@ dependencies {
     implementation("org.apache.poi:poi:5.0.0")
     implementation("org.apache.poi:poi-ooxml:5.0.0")
     implementation("com.github.doyaaaaaken:kotlin-csv-jvm:0.15.2")
-    implementation("com.github.holgerbrandl:krangl:0.16")
+    implementation("com.github.holgerbrandl:krangl:0.16.2")
 }
 
 tasks.withType<KotlinCompile> {
@@ -46,7 +46,6 @@ tasks.withType<ShadowJar> {
         "graphics2d-*.jar",
         "xmlgraphics-*.jar",
         "bcpkix-jdk15*.jar",
-        "bcprov-jdk15*.jar",
-        "commons-math3*.jar"
+        "bcprov-jdk15*.jar"
     )
 }

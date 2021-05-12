@@ -19,7 +19,11 @@ import kotlin.io.path.bufferedWriter
 
 @ExperimentalTime
 @ExperimentalPathApi
-class JoinFiles: Common() {
+class JoinFiles(var act: String): Common() {
+
+    private var action = cfgAll[act]?.get("action") ?: ""
+    private var fullInputPath: JPath = Path(wrkDir, cfgAll[action]?.get("inputdir") ?: "INPUT_DEFAULT")
+    private var fullOutputDir: String = Path(wrkDir, cfgAll[action]?.get("outputdir") ?: "OUTPUT_DEFAULT").toString()
 
 
     /**
@@ -67,6 +71,7 @@ class JoinFiles: Common() {
                     }
                 }
                 logger.info("   cnt: $allRows / time: ${doing.toComponents { days, hours, minutes, seconds, _ -> "${days}d ${hours}h ${minutes}min ${seconds}sec" }}")
+                allRows = 0
             }
         }
     }
@@ -84,9 +89,14 @@ class JoinFiles: Common() {
      * */
     inner class JoinXlsx {
         private var fileList: List<JPath> = getItemsList(fullInputPath, "file", "xlsx")
+        private var rowsLimit = try { if ((cfgAll[act]?.get("rows")?.toInt() ?: 65000) > 1000000) 1000000
+            else cfgAll[act]?.get("rows")?.toInt() ?: 65000 } catch (e: NumberFormatException) {
+            logger.info("${cfgAll[act]?.get("rows").toString()} is not valid positive Int number; 65000 will be used."); 65000 }
+
 
         fun join() {
             createDir(fullOutputDir)
+            rowsLimit = if (rowsLimit > 0) rowsLimit else 65000
             allRows = 0
             if (fileList.isNotEmpty()) {
                 val doing = measureTime {
@@ -131,6 +141,7 @@ class JoinFiles: Common() {
                     outputStream.close()
                 }
                 logger.info(" > cnt: $allRows / time: ${doing.toComponents { days, hours, minutes, seconds, _ -> "${days}d ${hours}h ${minutes}min ${seconds}sec" }}")
+                allRows = 0
             }
         }
     }

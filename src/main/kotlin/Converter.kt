@@ -22,28 +22,35 @@ import kotlin.io.path.nameWithoutExtension
 
 @ExperimentalTime
 @ExperimentalPathApi
-class Converter: Common() {
-    private lateinit var fileList: List<JPath>
+class Converter(act: String): Common() {
+    private var action = cfgAll[act]?.get("action") ?: ""
+    private var fullInputPath: JPath = Path(wrkDir, cfgAll[act]?.get("inputdir") ?: "INPUT_DEFAULT")
+    private var fullOutputDir: String = Path(wrkDir, cfgAll[act]?.get("outputdir") ?: "OUTPUT_DEFAULT").toString()
+    private var rowsLimit = try { if ((cfgAll[act]?.get("rows")?.toInt() ?: 65000) > 1000000) 1000000
+        else cfgAll[act]?.get("rows")?.toInt() ?: 65000 } catch (e: NumberFormatException) {
+        logger.info("${cfgAll[act]?.get("rows").toString()} is not valid positive Int number; 65000 will be used."); 65000 }
+
+    init {
+        createDir(fullOutputDir)
+        rowsLimit = if (rowsLimit > 0) rowsLimit else 65000
+    }
 
     fun convert() {
-        createDir(fullOutputDir)
+        when (action) {
+            "csv2xlsx" -> {
+                getItemsList(fullInputPath, "file", "csv").forEach { csv2excel(it) }
+            }
+            "csv2xls" -> {
+                getItemsList(fullInputPath, "file", "csv").forEach { csv2excel(it) }
+            }
+            "xls2xlsx" -> {
+                getItemsList(fullInputPath, "file", "xls").forEach { xls2xlsx(it) }
+            }
+            "xlsx2xls" -> {
+                getItemsList(fullInputPath, "file", "xlsx").forEach { xlsx2xls(it) }
+            }
+        }
 
-        val coolExt = mapOf(
-            "csv2xlsx" to "csv",
-            "csv2xls"  to "csv",
-            "xls2xlsx" to "xls",
-            "xlsx2xls" to "xlsx"
-        )
-
-        val coolMap = mapOf(
-            "csv2xlsx" to ::csv2excel,
-            "csv2xls"  to ::csv2excel,
-            "xls2xlsx" to ::xls2xlsx,
-            "xlsx2xls" to ::xlsx2xls
-        )
-
-        fileList = getItemsList(fullInputPath, "file", coolExt[action])
-        fileList.forEach { coolMap[action]?.invoke(it) }
     }
 
     /**
@@ -119,6 +126,7 @@ class Converter: Common() {
             }
             logger.info("   cnt: $allRows / time: ${doing.toComponents { days, hours, minutes, seconds, _
                 -> "${days}d ${hours}h ${minutes}min ${seconds}sec" }}")
+            allRows = 0
         } else {
             logger.info("File [${inputFile.name}] not found !!!")
         }
@@ -176,6 +184,7 @@ class Converter: Common() {
                 }
             }
             logger.info("   cnt: $allRows / time: ${doing.toComponents { days, hours, minutes, seconds, _ -> "${days}d ${hours}h ${minutes}min ${seconds}sec" }}")
+            allRows = 0
         }
         else {
             logger.info("File [${inputFile.name}] not found !!!")
@@ -236,6 +245,7 @@ class Converter: Common() {
                 }
             }
             logger.info("   cnt: $allRows / time: ${doing.toComponents { days, hours, minutes, seconds, _ -> "${days}d ${hours}h ${minutes}min ${seconds}sec" }}")
+            allRows = 0
         }
         else {
             logger.info("File [${inputFile.name}] not found !!!")

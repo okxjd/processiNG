@@ -4,6 +4,7 @@ import java.nio.file.LinkOption
 import java.nio.file.Path as JPath
 import java.io.File
 import java.nio.charset.Charset
+import java.util.Locale
 import java.util.logging.Logger
 import kotlin.io.path.Path
 import kotlin.io.path.ExperimentalPathApi
@@ -18,6 +19,7 @@ import kotlin.io.path.listDirectoryEntries
 
 @ExperimentalPathApi
 open class Common {
+
     companion object {
         val logger: Logger = Logger.getLogger("")
 
@@ -41,33 +43,22 @@ open class Common {
         const val escapeCharCSV = '\u0001'
         var sheetCnt: Int = 0
         var allRows: Int = 0
-        var rowsLimit: Int = 65000
+     //   var rowsLimit: Int = 65000
         var outFileCount: Int = 0
 
-        lateinit var cfg: Map<String, String>
+      //  lateinit var cfg: Map<String, String>
         internal lateinit var cfgAll: Map<String, Map<String, String>>
 
-        lateinit var action: String
-        private lateinit var inputDir: String
-        private lateinit var outputDir: String
-        lateinit var fullInputPath: JPath
-        lateinit var fullOutputDir: String
-       // lateinit var ext: String
+      //  lateinit var action: String
 
-        /** Загружает в **Common.cfg** конфигурацию по имени ключа из файла конфига. */
+        /** Загружает в **Common.cfgAll** конфигурацию из файла конфига. */
         fun load(configFile: JPath, key: String) {
             cfgAll = configLoad(configFile)
-            cfg = cfgAll[key] ?: mapOf()
-            action = cfg["action"] ?: ""
-            inputDir = cfg["inputdir"] ?: "INPUT_DEFAULT"
-            outputDir = cfg["outputdir"] ?: "OUTPUT_DEFAULT"
-            fullInputPath = Path(wrkDir, inputDir)
-            fullOutputDir = Path(wrkDir, outputDir).toString()
-          //  ext = cfg["ext"]?.lowercase() ?: "csv"
-            rowsLimit = try { if ((cfg["rows"]?.toInt() ?: 65000) > 1000000) 1000000
-                else cfg["rows"]?.toInt() ?: 65000 } catch (e: NumberFormatException) {
-                logger.info("${cfg["rows"].toString()} is not valid positive Int number; 65000 will be used."); 65000 }
-            rowsLimit = if (rowsLimit > 0) rowsLimit else 65000
+          //  action = cfgAll[key]?.get("action") ?: ""
+         /*   rowsLimit = try { if ((cfgAll[action]?.get("rows")?.toInt() ?: 65000) > 1000000) 1000000
+                else cfgAll[action]?.get("rows")?.toInt() ?: 65000 } catch (e: NumberFormatException) {
+                logger.info("${cfgAll[action]?.get("rows").toString()} is not valid positive Int number; 65000 will be used."); 65000 }
+            rowsLimit = if (rowsLimit > 0) rowsLimit else 65000*/
         }
 
         /** Загрузка файла конфига с диска и парсинг его содержимого.
@@ -84,11 +75,11 @@ open class Common {
                         when {
                             i.trim().startsWith('#') -> { tx0 = "" }
                             i.trim().startsWith('[') -> {
-                                tx0 = i.trim().lowercase().slice(1 until i.length - 1)
+                                tx0 = i.trim().lowercase(Locale.getDefault()).slice(1 until i.length - 1)
                                 iniMap[tx0] = mutableMapOf()
                             }
                             else -> {
-                                tx1 = i.trim().lowercase().substringBefore(':').trim()
+                                tx1 = i.trim().lowercase(Locale.getDefault()).substringBefore(':').trim()
                                 tx2 = i.trim().substringAfter(':').trim()
                                 iniMap[tx0]?.set(tx1, tx2)
                             }
@@ -150,7 +141,7 @@ open class Common {
                         resT.addAll(getItemsList(dir, "dir"))
                         for (i in resT) {
                             res.addAll(
-                                i.listDirectoryEntries(if (!ext.isNullOrBlank()) "*.${ext.lowercase()}" else "*")
+                                i.listDirectoryEntries(if (!ext.isNullOrBlank()) "*.${ext.lowercase(Locale.getDefault())}" else "*")
                                     .filter { it.isRegularFile(LinkOption.NOFOLLOW_LINKS) }.toMutableList()
                             )
                         }
