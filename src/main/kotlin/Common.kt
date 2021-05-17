@@ -43,22 +43,11 @@ open class Common {
         const val escapeCharCSV = '\u0001'
         var sheetCnt: Int = 0
         var allRows: Int = 0
-     //   var rowsLimit: Int = 65000
-        var outFileCount: Int = 0
-
-      //  lateinit var cfg: Map<String, String>
         internal lateinit var cfgAll: Map<String, Map<String, String>>
-
-      //  lateinit var action: String
 
         /** Загружает в **Common.cfgAll** конфигурацию из файла конфига. */
         fun load(configFile: JPath, key: String) {
             cfgAll = configLoad(configFile)
-          //  action = cfgAll[key]?.get("action") ?: ""
-         /*   rowsLimit = try { if ((cfgAll[action]?.get("rows")?.toInt() ?: 65000) > 1000000) 1000000
-                else cfgAll[action]?.get("rows")?.toInt() ?: 65000 } catch (e: NumberFormatException) {
-                logger.info("${cfgAll[action]?.get("rows").toString()} is not valid positive Int number; 65000 will be used."); 65000 }
-            rowsLimit = if (rowsLimit > 0) rowsLimit else 65000*/
         }
 
         /** Загрузка файла конфига с диска и парсинг его содержимого.

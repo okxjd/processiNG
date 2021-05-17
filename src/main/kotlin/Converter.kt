@@ -36,21 +36,21 @@ class Converter(act: String): Common() {
     }
 
     fun convert() {
-        when (action) {
-            "csv2xlsx" -> {
-                getItemsList(fullInputPath, "file", "csv").forEach { csv2excel(it) }
-            }
-            "csv2xls" -> {
-                getItemsList(fullInputPath, "file", "csv").forEach { csv2excel(it) }
-            }
-            "xls2xlsx" -> {
-                getItemsList(fullInputPath, "file", "xls").forEach { xls2xlsx(it) }
-            }
-            "xlsx2xls" -> {
-                getItemsList(fullInputPath, "file", "xlsx").forEach { xlsx2xls(it) }
-            }
-        }
+        val coolExt = mapOf(
+            "csv2xlsx" to "csv",
+            "csv2xls"  to "csv",
+            "xls2xlsx" to "xls",
+            "xlsx2xls" to "xlsx"
+        )
 
+        val coolMap = mapOf(
+            "csv2xlsx" to ::csv2excel,
+            "csv2xls"  to ::csv2excel,
+            "xls2xlsx" to ::xls2xlsx,
+            "xlsx2xls" to ::xlsx2xls
+        )
+
+        getItemsList(fullInputPath, "file", coolExt[action]).forEach { coolMap[action]?.invoke(it) }
     }
 
     /**

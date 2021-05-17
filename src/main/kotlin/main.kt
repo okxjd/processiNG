@@ -22,21 +22,20 @@ private val appVersion: String? = Thread.currentThread()
 @ExperimentalTime
 @ExperimentalPathApi
 @KotlinCsvExperimental
-fun doAction(act: String) { // (args: Map<String, String>) {
+fun doAction(act: String) {
     val logger = Logger.getLogger("")
 
     fun getList(): List<String> {
         val tt: MutableList<String> = mutableListOf()
         Common.cfgAll[act]?.get("list").toString().split(Common.cfgAll[act]?.get("delimiter").toString().trim()[0]).forEach { tt.add(it.trim()) }
-        // args["list"].toString().split(args["delimiter"].toString().trim()[0]).forEach { tt.add(it.trim()) }
         return tt.toList()
     }
 
     when (Common.cfgAll[act]?.get("action").toString().lowercase(Locale.getDefault())) {
         "csv2xlsx", "csv2xls", "xls2xlsx", "xlsx2xls" -> { Converter(act).convert() }
-      //  "split_xlsx_rows", "split_xlsx_mask" -> { Splitter(act).SplitXLSX().split() }
         "split_txt" -> { Splitter(act).SplitTXT().split() }
         "split_csv" -> { Splitter(act).SplitCSV().split() }
+        "split_xlsx_rows" -> { Splitter(act).SplitXLSX().split() }
         "join_txt" -> { JoinFiles(act).JoinTxt().joinTxt() }
         "join_csv" -> { JoinFiles(act).JoinTxt().joinCsv() }
         "join_xlsx" -> { JoinFiles(act).JoinXlsx().join() }
@@ -86,14 +85,18 @@ fun main(args: Array<String>) {
     }
     else {
         val defaultCfg = if (args.size < 2) "cfg/config.conf" else args[1]
-        Common.load(Path(Common.wrkDir, defaultCfg), args[0].lowercase(Locale.getDefault()).trim())
+        val arg = args[0].lowercase(Locale.getDefault()).trim()
+
+        // TODO тут д.б. проверки arg на безопасность, я помню
+
+        Common.load(Path(Common.wrkDir, defaultCfg), arg)
         Common.createDir(Path(Common.wrkDir,"log").toString())
         val logger = Logger.getLogger("")
         val logCfg = Thread.currentThread().contextClassLoader.getResourceAsStream("logger.properties")
         LogManager.getLogManager().readConfiguration(logCfg)
-        logger.info("CONFIG: ${args[0]} [action: ${Common.cfgAll[args[0]]?.get("action")}]")
+        logger.info("CONFIG: $arg [action: ${Common.cfgAll[arg]?.get("action")}]")
         logger.info("START: ${LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss"))}")
-        doAction(args[0])
+        doAction(arg)
         logger.info("STOP: ${LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss"))}")
         logger.info("END")
         logger.info("-----")
