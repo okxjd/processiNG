@@ -38,7 +38,7 @@ fun doAction(act: String) {
         "split_xlsx_rows" -> { Splitter(act).SplitXLSX().split() }
         "join_txt" -> { JoinFiles(act).JoinTxt().joinTxt() }
         "join_csv" -> { JoinFiles(act).JoinTxt().joinCsv() }
-        "join_xlsx" -> { JoinFiles(act).JoinXlsx().join() }
+        "join_xlsx" -> { JoinFiles(act).JoinXlsx().joinXlsx() }
         "create_dir" -> {
             val lst = getList()
             for (i in lst) {

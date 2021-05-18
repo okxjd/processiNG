@@ -4,7 +4,6 @@ import org.apache.poi.openxml4j.opc.OPCPackage
 import org.apache.poi.ss.usermodel.CellType
 import org.apache.poi.xssf.streaming.SXSSFWorkbook
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
-import java.io.FileOutputStream
 import java.nio.charset.Charset
 import java.nio.file.Path as JPath
 import kotlin.time.ExperimentalTime
@@ -22,8 +21,8 @@ import kotlin.io.path.bufferedWriter
 class JoinFiles(var act: String): Common() {
 
     private var action = cfgAll[act]?.get("action") ?: ""
-    private var fullInputPath: JPath = Path(wrkDir, cfgAll[action]?.get("inputdir") ?: "INPUT_DEFAULT")
-    private var fullOutputDir: String = Path(wrkDir, cfgAll[action]?.get("outputdir") ?: "OUTPUT_DEFAULT").toString()
+    private var fullInputPath: JPath = Path(wrkDir, cfgAll[act]?.get("inputdir") ?: "INPUT_DEFAULT")
+    private var fullOutputDir: String = Path(wrkDir, cfgAll[act]?.get("outputdir") ?: "OUTPUT_DEFAULT").toString()
 
 
     /**
@@ -93,15 +92,15 @@ class JoinFiles(var act: String): Common() {
             else cfgAll[act]?.get("rows")?.toInt() ?: 65000 } catch (e: NumberFormatException) {
             logger.info("${cfgAll[act]?.get("rows").toString()} is not valid positive Int number; 65000 will be used."); 65000 }
 
-
-        fun join() {
-            createDir(fullOutputDir)
+        init {
             rowsLimit = if (rowsLimit > 0) rowsLimit else 65000
+        }
+
+        fun joinXlsx() {
+            createDir(fullOutputDir)
             allRows = 0
             if (fileList.isNotEmpty()) {
                 val doing = measureTime {
-                    val outputFile = Path(fullOutputDir, "${fileList[0].nameWithoutExtension}_J.xlsx")
-                    val outputStream = FileOutputStream(outputFile.toString())
                     val xlWb = SXSSFWorkbook(100)
                     var xlWs = xlWb.createSheet("PAGE_$sheetCnt")
                     var rw = xlWs.createRow(0)
@@ -111,35 +110,38 @@ class JoinFiles(var act: String): Common() {
                         if (inputFile.exists()) {
                             logger.info("> ${inputFile.name}")
                             val pkg: OPCPackage = OPCPackage.open(inputFile.toFile())
-                            val iFile = XSSFWorkbook(pkg)
-                            try {
-                                iFile.sheetIterator().forEach { sh ->
-                                    sh.rowIterator().forEach { r ->
-                                        r.cellIterator().forEach { c ->
-                                            rw.createCell(cellCnt, CellType.STRING)
-                                                .setCellValue(c.toString())
-                                            cellCnt += 1
+                            pkg.use { p ->
+                                XSSFWorkbook(p).use { ifl ->
+                                    ifl.sheetIterator().forEach { sh ->
+                                        sh.rowIterator().forEach { r ->
+                                            r.cellIterator().forEach { c ->
+                                                rw.createCell(cellCnt, CellType.STRING)
+                                                    .setCellValue(c.toString())
+                                                cellCnt += 1
+                                            }
+                                            cellCnt = 0
+                                            rowOnSheet += 1
+                                            if (rowOnSheet % rowsLimit == 0) {
+                                                sheetCnt += 1
+                                                rowOnSheet = 0
+                                                xlWs = xlWb.createSheet("PAGE_$sheetCnt")
+                                            }
+                                            rw = xlWs.createRow(rowOnSheet)
+                                            allRows += 1
                                         }
-                                        rowOnSheet += 1
-                                        if (rowOnSheet % rowsLimit == 0) {
-                                            sheetCnt += 1
-                                            rowOnSheet = 0
-                                            xlWs = xlWb.createSheet("PAGE_$sheetCnt")
-                                        }
-                                        rw = xlWs.createRow(rowOnSheet)
                                     }
                                 }
-                            } finally {
-                                iFile.close()
-                                pkg.close()
                             }
                         }
                     }
-                    xlWb.write(outputStream)
-                    xlWb.dispose()
-                    xlWb.close()
-                    outputStream.close()
-                }
+                    Path(fullOutputDir, "${fileList[0].nameWithoutExtension}_J.xlsx").toFile()
+                        .outputStream()
+                        .use {
+                            xlWb.write(it)
+                            xlWb.dispose()
+                            xlWb.close()
+                        }
+                 }
                 logger.info(" > cnt: $allRows / time: ${doing.toComponents { days, hours, minutes, seconds, _ -> "${days}d ${hours}h ${minutes}min ${seconds}sec" }}")
                 allRows = 0
             }

@@ -58,7 +58,7 @@ open class Common {
             var tx0 = ""
             var tx1 = ""
             var tx2 = ""
-            for (i in iniFile) {
+            iniFile.forEach { i ->
                 when {
                     i.trim() != "" -> {
                         when {
